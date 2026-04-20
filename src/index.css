@@ -130,3 +130,97 @@
     background-size: 40px 40px;
   }
 }
+/* 🔥 CLEAN CYBER BACKGROUND */
+.dashboard-bg {
+  position: relative;
+  min-height: 100vh;
+  background: #020617;
+  overflow: hidden;
+}
+
+/* 🔥 GRID */
+.dashboard-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background-image: 
+    linear-gradient(rgba(34,197,94,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34,197,94,0.05) 1px, transparent 1px);
+
+  background-size: 50px 50px;
+}
+
+/* 🔥 VERTICAL SCAN LINES */
+.dashboard-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 80px,
+    rgba(34,197,94,0.08) 81px,
+    transparent 82px
+  );
+
+  animation: scanLines 6s linear infinite;
+}
+
+@keyframes scanLines {
+  from { transform: translateY(0); }
+  to { transform: translateY(100px); }
+}
+/* 🔥 LIGHT FLOW */
+.dashboard-bg .light {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: rgba(34,197,94,0.08);
+  filter: blur(120px);
+  animation: float 10s infinite linear;
+}
+
+@keyframes float {
+  0% { transform: translate(-20%, -20%); }
+  50% { transform: translate(50%, 50%); }
+  100% { transform: translate(-20%, -20%); }
+}
+/* 🔥 LIGHT EFFECTS */
+.light {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  filter: blur(120px);
+  opacity: 0.15;
+}
+
+/* 🔥 Light 1 */
+.light1 {
+  background: #22c55e;
+  top: 10%;
+  left: 10%;
+  animation: move1 12s linear infinite;
+}
+
+/* 🔥 Light 2 */
+.light2 {
+  background: #22c55e;
+  bottom: 10%;
+  right: 10%;
+  animation: move2 14s linear infinite;
+}
+
+/* 🔥 Animations */
+@keyframes move1 {
+  0% { transform: translate(0,0); }
+  50% { transform: translate(200px, 100px); }
+  100% { transform: translate(0,0); }
+}
+
+@keyframes move2 {
+  0% { transform: translate(0,0); }
+  50% { transform: translate(-200px, -100px); }
+  100% { transform: translate(0,0); }
+}

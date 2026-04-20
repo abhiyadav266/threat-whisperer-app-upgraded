@@ -1,115 +1,224 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, RefreshCw, Check } from 'lucide-react';
+import { Check, X, Loader2, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import GlassCard from '@/components/GlassCard';
 
-const chars = {
-  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-  lower: 'abcdefghijklmnopqrstuvwxyz',
-  numbers: '0123456789',
-  symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?',
-};
+export default function PasswordChecker() {
 
-export default function Password() {
-  const [length, setLength] = useState(16);
-  const [options, setOptions] = useState({ upper: true, lower: true, numbers: true, symbols: true });
   const [password, setPassword] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [strength, setStrength] = useState(0);
+  const [breach, setBreach] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
 
-  const generate = useCallback(() => {
-    let pool = '';
-    if (options.upper) pool += chars.upper;
-    if (options.lower) pool += chars.lower;
-    if (options.numbers) pool += chars.numbers;
-    if (options.symbols) pool += chars.symbols;
-    if (!pool) pool = chars.lower;
+  // 🔐 RULES
+  const rules: any = {
+    length: password.length >= 10,
+    upper: /[A-Z]/.test(password),
+    lower: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
+  };
 
-    let result = '';
-    const array = new Uint32Array(length);
-    crypto.getRandomValues(array);
-    for (let i = 0; i < length; i++) {
-      result += pool[array[i] % pool.length];
+  // 🔥 STRENGTH CALC
+  useEffect(() => {
+    let score = 0;
+    Object.values(rules).forEach(v => v && score++);
+    setStrength(score);
+  }, [password]);
+
+  const getStrengthLabel = () => {
+    if (strength <= 2) return "Weak";
+    if (strength === 3) return "Medium";
+    if (strength === 4) return "Strong";
+    return "Very Strong";
+  };
+
+  const getGradient = () => {
+    if (strength <= 2) return "from-red-500 to-orange-500";
+    if (strength === 3) return "from-yellow-500 to-amber-400";
+    if (strength === 4) return "from-green-500 to-emerald-400";
+    return "from-emerald-400 to-cyan-400";
+  };
+
+  // 🔥 SUGGESTIONS
+  const suggestions: string[] = [];
+  if (!rules.length) suggestions.push("Use at least 10 characters");
+  if (!rules.upper) suggestions.push("Add uppercase letter");
+  if (!rules.lower) suggestions.push("Add lowercase letter");
+  if (!rules.number) suggestions.push("Add numbers");
+  if (!rules.symbol) suggestions.push("Add special character");
+
+  // 🔥 BACKEND BREACH CHECK
+  const checkBreach = async () => {
+    if (!password) return;
+
+    setLoading(true);
+    setBreach(null);
+
+    try {
+      const res = await fetch("http://localhost:5000/check-breach", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await res.json();
+
+      if (data.breached) {
+        setBreach(data.count);
+      } else {
+        setBreach(0);
+      }
+
+    } catch (err) {
+      console.error("Backend error:", err);
+      setBreach(-1);
     }
-    setPassword(result);
-    setCopied(false);
-  }, [length, options]);
 
-  const copy = async () => {
-    await navigator.clipboard.writeText(password);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen grid-bg">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Password Generator</h1>
-          <p className="text-muted-foreground mb-8 font-body">Generate cryptographically secure passwords</p>
+      <div className="max-w-6xl mx-auto px-4 py-12">
 
-          {/* Output */}
-          <GlassCard className="mb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 px-4 py-3 bg-secondary rounded-lg font-display text-lg tracking-wider text-foreground break-all min-h-[52px]">
-                {password || <span className="text-muted-foreground">Click generate...</span>}
-              </div>
-              {password && (
-                <button onClick={copy} className="p-3 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                  {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
-                </button>
-              )}
-            </div>
-          </GlassCard>
+        {/* HEADER */}
+        <h1 className="text-4xl font-bold mb-2 text-primary text-glow">
+          🔐 Password Security Checker
+        </h1>
+        <p className="text-muted-foreground mb-10">
+          Check password strength & data breach exposure
+        </p>
 
-          {/* Controls */}
+        {/* 🔥 TOP GRID */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+
+          {/* INPUT */}
           <GlassCard>
-            <div className="space-y-6">
-              {/* Length */}
-              <div>
-                <div className="flex justify-between mb-2">
-                  <label className="text-sm font-display text-foreground">Length</label>
-                  <span className="text-sm font-display text-primary">{length}</span>
-                </div>
-                <input
-                  type="range"
-                  min={4}
-                  max={64}
-                  value={length}
-                  onChange={(e) => setLength(Number(e.target.value))}
-                  className="w-full accent-primary"
-                />
-              </div>
-
-              {/* Options */}
-              <div className="grid grid-cols-2 gap-3">
-                {(Object.keys(options) as (keyof typeof options)[]).map((key) => (
-                  <label
-                    key={key}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      options[key] ? 'border-primary/50 bg-primary/5' : 'border-border bg-secondary'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={options[key]}
-                      onChange={() => setOptions(prev => ({ ...prev, [key]: !prev[key] }))}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm font-body text-foreground capitalize">{key}</span>
-                  </label>
-                ))}
-              </div>
-
-              <button
-                onClick={generate}
-                className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-display font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Generate Password
+            <div className="flex items-center">
+              <input
+                type={show ? "text" : "password"}
+                placeholder="Enter secure password..."
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full p-3 bg-secondary rounded focus:ring-2 focus:ring-primary"
+              />
+              <button onClick={() => setShow(!show)} className="ml-2">
+                {show ? <EyeOff /> : <Eye />}
               </button>
             </div>
           </GlassCard>
-        </motion.div>
+
+          {/* STRENGTH */}
+          <GlassCard>
+            <div className="flex justify-between mb-2">
+              <span>Strength</span>
+              <span className="font-semibold">{getStrengthLabel()}</span>
+            </div>
+
+            <div className="w-full h-3 bg-secondary rounded">
+              <motion.div
+                className={`h-3 bg-gradient-to-r ${getGradient()}`}
+                animate={{ width: `${(strength / 5) * 100}%` }}
+              />
+            </div>
+          </GlassCard>
+
+        </div>
+
+        {/* 🔥 MAIN GRID */}
+        <div className="grid md:grid-cols-2 gap-6">
+
+          {/* LEFT */}
+          <div className="space-y-6">
+
+            {/* RULES */}
+            <GlassCard>
+              <h3 className="mb-3 text-primary font-semibold">
+                Security Requirements
+              </h3>
+
+              {Object.entries({
+                length: 'Minimum 10 characters',
+                upper: 'Uppercase letter',
+                lower: 'Lowercase letter',
+                number: 'Number',
+                symbol: 'Special character'
+              }).map(([key, label]) => (
+                <div key={key} className="flex items-center gap-2 text-sm mb-1">
+                  {rules[key]
+                    ? <Check className="text-green-400" />
+                    : <X className="text-red-400" />}
+                  {label}
+                </div>
+              ))}
+            </GlassCard>
+
+            {/* SUGGESTIONS */}
+            {suggestions.length > 0 && (
+              <GlassCard>
+                <h3 className="mb-2 text-yellow-400 font-semibold">
+                  Suggestions
+                </h3>
+                {suggestions.map((s, i) => (
+                  <p key={i} className="text-sm text-muted-foreground">
+                    ⚡ {s}
+                  </p>
+                ))}
+              </GlassCard>
+            )}
+
+          </div>
+
+          {/* RIGHT */}
+          <div className="space-y-6">
+
+            {/* BREACH CHECK */}
+            <GlassCard>
+              <button
+                disabled={!password || loading}
+                onClick={checkBreach}
+                className="w-full py-3 bg-gradient-to-r from-primary to-emerald-400 rounded-lg mb-4 font-semibold disabled:opacity-50"
+              >
+                {loading ? "Checking..." : "Check Data Breach"}
+              </button>
+
+              {loading && <Loader2 className="animate-spin mx-auto" />}
+
+              {breach !== null && (
+                <div className="text-center mt-3 flex flex-col items-center gap-2">
+
+                  <ShieldAlert className="h-6 w-6" />
+
+                  {breach > 0 && (
+                    <p className="text-red-400 font-semibold">
+                      Found in {breach} breaches 🚨
+                    </p>
+                  )}
+
+                  {breach === 0 && (
+                    <p className="text-green-400 font-semibold">
+                      Safe password ✅
+                    </p>
+                  )}
+
+                  {breach === -1 && (
+                    <p className="text-yellow-400">
+                      Backend Error ⚠️
+                    </p>
+                  )}
+                </div>
+              )}
+
+            </GlassCard>
+
+          </div>
+
+        </div>
+
       </div>
     </div>
   );

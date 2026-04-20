@@ -6,12 +6,17 @@ const severityColors: Record<string, string> = {
   info: 'bg-info/20 text-info border-info/30',
 };
 
-export default function SeverityBadge({ severity }: { severity: string }) {
-  const key = severity.toLowerCase();
+export default function SeverityBadge({ severity }: { severity?: string }) {
+
+  // 🔥 SAFE FIX (main fix)
+  const safeSeverity = severity || "Info";
+
+  const key = safeSeverity.toLowerCase();
   const colors = severityColors[key] || severityColors.info;
+
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-display font-semibold border ${colors}`}>
-      {severity}
+      {safeSeverity}
     </span>
   );
 }
