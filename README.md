@@ -1,3 +1,3 @@
-# Welcome to your my project
+# Welcome to my project
 
 TODO: Document your project here
